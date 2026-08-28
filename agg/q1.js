@@ -16,7 +16,11 @@ const CALCUL = [
   { $match: { n: { $gte: 30 } } },
   { $sort: { median_m2: -1 } },
   { $limit: 10 },
-  { $project: { _id: 0, commune: 1, n: 1, median_m2: { $round: ["$median_m2", 0] } } }
+  { $lookup: { from: "communes", localField: "_id", foreignField: "_id", as: "ref" } },
+  { $unwind: { path: "$ref", preserveNullAndEmptyArrays: true } },
+  { $project: { _id: 0, commune: 1, n: 1,
+                median_m2: { $round: ["$median_m2", 0] },
+                centroide: "$ref.centroide" } }
 ]
 
 print(JSON.stringify(db.mutations.aggregate([FILTRE, ...CALCUL]).toArray()))

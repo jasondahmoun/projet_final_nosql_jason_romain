@@ -14,5 +14,5 @@ print(JSON.stringify(db.mutations.aggregate([
       lon: { $arrayElemAt: ["$geo.coordinates", 0] },
       lat: { $arrayElemAt: ["$geo.coordinates", 1] }
   } },
-  { $limit: 500 }
+  { $limit: 4000 }
 ]).toArray()))

@@ -18,8 +18,12 @@ Base : `http://localhost:8000`
 
 ### `GET /agg/prix-m2-commune?limit=10&min_ventes=30`
 
+Un `$lookup` vers `communes` ramène le centroïde de chaque commune, après le `$limit`
+pour que la jointure ne porte que sur les documents effectivement retournés.
+
 ```json
-[{ "commune": "Montpellier", "median_m2": 3120, "n": 4218 }]
+[{ "commune": "La Grande-Motte", "median_m2": 5400, "n": 664,
+   "centroide": { "type": "Point", "coordinates": [4.0776, 43.5615] } }]
 ```
 
 ### `GET /agg/evolution-mensuelle?type_local=Appartement`

@@ -220,9 +220,19 @@ db.mutations.aggregate([
   { $match: { n: { $gte: 30 } } },
   { $sort: { median_m2: -1 } },
   { $limit: 10 },
-  { $project: { _id: 0, commune: 1, n: 1, median_m2: { $round: ["$median_m2", 0] } } }
+
+  // jointure vers le référentiel, APRÈS le $limit : elle ne porte que sur les
+  // 10 documents retournés, pas sur les 340 communes
+  { $lookup: { from: "communes", localField: "_id", foreignField: "_id", as: "ref" } },
+  { $unwind: { path: "$ref", preserveNullAndEmptyArrays: true } },
+
+  { $project: { _id: 0, commune: 1, n: 1,
+                median_m2: { $round: ["$median_m2", 0] },
+                centroide: "$ref.centroide" } }
 ])
 ```
+
+C'est le `$lookup` significatif exigé au § 1.2. Sa **position dans le pipeline est le point à défendre** : placé après le `$sort` et le `$limit`, il ne réalise que 10 jointures. Placé avant le `$group`, il en aurait réalisé une par mutation — 19 072 — pour un résultat identique. Le `preserveNullAndEmptyArrays` garde la ligne même si le référentiel est incomplet : un classement amputé d'une commune serait un bug silencieux, un `centroide` absent est visible.
 
 | # | Commune | Prix médian €/m² | Ventes retenues |
 |---|---|---|---|

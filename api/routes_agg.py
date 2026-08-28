@@ -54,7 +54,17 @@ def prix_m2_commune(limit: int = Query(10, ge=1, le=100), min_ventes: int = Quer
                 {"$match": {"n": {"$gte": min_ventes}}},
                 {"$sort": {"median_m2": -1}},
                 {"$limit": limit},
-                {"$project": {"_id": 0, "commune": 1, "n": 1, "median_m2": {"$round": ["$median_m2", 0]}}},
+                {"$lookup": {"from": "communes", "localField": "_id", "foreignField": "_id", "as": "ref"}},
+                {"$unwind": {"path": "$ref", "preserveNullAndEmptyArrays": True}},
+                {
+                    "$project": {
+                        "_id": 0,
+                        "commune": 1,
+                        "n": 1,
+                        "median_m2": {"$round": ["$median_m2", 0]},
+                        "centroide": "$ref.centroide",
+                    }
+                },
             ]
         )
     )
