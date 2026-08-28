@@ -27,7 +27,12 @@ services:
     ports: ["27017:27017"]
     volumes:
       - mongodata:/data/db
-      - ./db:/docker-entrypoint-initdb.d:ro   # scripts joués UNE FOIS, à la création du volume
+      # Seul 01-init-app-user.js doit être joué au démarrage de Mongo (une fois,
+      # à la création du volume). db/import.sh, 02-transform.js et 03-indexes.js
+      # se lancent depuis l'hôte, après coup — les monter ici sur tout le dossier
+      # ferait tenter à Mongo de les exécuter lui-même au premier démarrage, ce
+      # qui échoue (import.sh appelle `docker compose`, absent du conteneur).
+      - ./db/01-init-app-user.js:/docker-entrypoint-initdb.d/01-init-app-user.js:ro
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -44,11 +49,7 @@ services:
     environment:
       MONGO_URI: mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@mongo:27017/${MONGO_DB}?authSource=${MONGO_DB}
       MONGO_DB: ${MONGO_DB}
-      COLLECTION: ${COLLECTION}
       CORS_ORIGIN: ${CORS_ORIGIN}
-      # Indispensable pour la capture explain() avant/après (§ 1.5) : sans cette
-      # ligne, AUTO_INDEX reste dans le .env et n'atteint jamais l'API.
-      AUTO_INDEX: ${AUTO_INDEX:-true}
     ports: ["8000:8000"]
 
   web:
