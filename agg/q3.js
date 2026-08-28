@@ -4,7 +4,9 @@ print(JSON.stringify(db.mutations.aggregate([
       distanceField: "distance_m",
       maxDistance: 5000,
       spherical: true,
-      query: { type_local: "Appartement", surface_reelle_bati: { $gt: 9 }, valeur_fonciere: { $gt: 1000 } }
+      query: { nature_mutation: { $in: ["Vente", "Vente en l'état futur d'achèvement"] },
+               type_local: "Appartement", surface_reelle_bati: { $gt: 9 },
+               valeur_fonciere: { $gt: 1000 }, prix_m2: { $gt: 100, $lt: 20000 } }
   } },
   { $project: { _id: 0, nom_commune: 1,
       distance_m: { $round: ["$distance_m", 0] },

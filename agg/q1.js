@@ -1,7 +1,9 @@
 const FILTRE = { $match: {
+  nature_mutation: { $in: ["Vente", "Vente en l'état futur d'achèvement"] },
   type_local: { $in: ["Maison", "Appartement"] },
   surface_reelle_bati: { $gt: 9 },
-  valeur_fonciere: { $gt: 1000 }
+  valeur_fonciere: { $gt: 1000 },
+  prix_m2: { $gt: 100, $lt: 20000 }
 } }
 
 const CALCUL = [
