@@ -308,9 +308,34 @@ Le découpage par tranches de distance du tableau ci-dessus moyennait donc deux 
 
 ### Captures
 
-- `captures/explain_avant.json` — plan d'exécution sans index
-- `captures/explain_apres.json` — plan après création de l'index composé
-- `captures/front.png` — le front affichant les trois vues, carte colorée par tranche de prix
+**`explain("executionStats")` sur `db.mutations.find({ code_postal: "34000" })`.**
+
+Avant, aucun index — extrait de `captures/explain_avant.json` :
+
+```json
+"stage": "COLLSCAN",
+"totalKeysExamined": 0,
+"totalDocsExamined": 29565,
+"nReturned": 1933,
+"executionTimeMillis": 16
+```
+
+MongoDB lit les 29565 documents de la collection pour en retourner 1933 : il en examine **15,3 pour chacun qu'il rend**.
+
+Après création de `{ code_postal: 1, date_mutation: -1 }` — `captures/explain_apres.json` :
+
+```json
+"stage": "FETCH",
+"inputStage": { "stage": "IXSCAN" },
+"totalKeysExamined": 1933,
+"totalDocsExamined": 1933,
+"nReturned": 1933,
+"executionTimeMillis": 4
+```
+
+Le ratio tombe à **1,0** : chaque document lu est un document rendu. Noter que le stage racine est `FETCH` et non `IXSCAN` — l'`IXSCAN` est son `inputStage`, et c'est la chaîne complète qui prouve que l'index sert.
+
+**Le front en fonctionnement** : capture pleine page en annexe A, fichier `captures/front.png`.
 
 ---
 
@@ -330,7 +355,12 @@ Le découpage par tranches de distance du tableau ci-dessus moyennait donc deux 
 
 ## Annexes
 
-- Schéma détaillé des collections : § iii
-- Liste complète des routes : `docs/API.md`
-- Commandes d'import : `db/import.sh`
-- Répartition du travail : `README.md`
+*Hors pagination.*
+
+Schéma détaillé des collections : § iii · liste complète des routes : `docs/API.md` · commandes d'import : `db/import.sh` · répartition du travail : `README.md`.
+
+### A. Le front en fonctionnement
+
+Les trois vues sont alimentées par les trois routes `/agg/*` de l'API, sur la base réelle : le tableau de Q1, le graphique de Q2 et la carte de Q3, colorée par tranche de prix au m².
+
+![Le front : tableau Q1, graphique Q2, carte Q3 colorée par tranche de prix](captures/front.png)
