@@ -65,7 +65,7 @@ if (h1 && h1.nextElementSibling && h1.nextElementSibling.tagName === "P") {
 </script></body></html>"""
 
 html = HTML.replace("__CSS__", CSS).replace("__MD__", md)
-out_html = os.path.join(SC, "rapport.html")
+out_html = os.path.join(SC, "rapport.html")  # artefact, ignore par git
 io.open(out_html, "w", encoding="utf-8").write(html)
 
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"

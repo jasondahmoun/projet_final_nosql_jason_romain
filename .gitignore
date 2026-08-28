@@ -35,3 +35,6 @@ __pycache__/
 node_modules/
 *.log
 .DS_Store
+
+# artefact intermediaire de rapport/build_pdf.py
+rapport/rapport.html
