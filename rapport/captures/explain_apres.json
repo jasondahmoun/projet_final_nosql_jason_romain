@@ -1,0 +1,133 @@
+{
+  "explainVersion": "1",
+  "queryPlanner": {
+    "namespace": "immo.mutations",
+    "indexFilterSet": false,
+    "parsedQuery": {
+      "code_postal": {
+        "$eq": "34000"
+      }
+    },
+    "queryHash": "A3AA375A",
+    "planCacheKey": "81A99C22",
+    "optimizationTimeMillis": 0,
+    "maxIndexedOrSolutionsReached": false,
+    "maxIndexedAndSolutionsReached": false,
+    "maxScansToExplodeReached": false,
+    "winningPlan": {
+      "stage": "FETCH",
+      "inputStage": {
+        "stage": "IXSCAN",
+        "keyPattern": {
+          "code_postal": 1,
+          "date_mutation": -1
+        },
+        "indexName": "code_postal_1_date_mutation_-1",
+        "isMultiKey": false,
+        "multiKeyPaths": {
+          "code_postal": [],
+          "date_mutation": []
+        },
+        "isUnique": false,
+        "isSparse": false,
+        "isPartial": false,
+        "indexVersion": 2,
+        "direction": "forward",
+        "indexBounds": {
+          "code_postal": [
+            "[\"34000\", \"34000\"]"
+          ],
+          "date_mutation": [
+            "[MaxKey, MinKey]"
+          ]
+        }
+      }
+    },
+    "rejectedPlans": []
+  },
+  "executionStats": {
+    "executionSuccess": true,
+    "nReturned": 1933,
+    "executionTimeMillis": 4,
+    "totalKeysExamined": 1933,
+    "totalDocsExamined": 1933,
+    "executionStages": {
+      "stage": "FETCH",
+      "nReturned": 1933,
+      "executionTimeMillisEstimate": 5,
+      "works": 1934,
+      "advanced": 1933,
+      "needTime": 0,
+      "needYield": 0,
+      "saveState": 1,
+      "restoreState": 1,
+      "isEOF": 1,
+      "docsExamined": 1933,
+      "alreadyHasObj": 0,
+      "inputStage": {
+        "stage": "IXSCAN",
+        "nReturned": 1933,
+        "executionTimeMillisEstimate": 3,
+        "works": 1934,
+        "advanced": 1933,
+        "needTime": 0,
+        "needYield": 0,
+        "saveState": 1,
+        "restoreState": 1,
+        "isEOF": 1,
+        "keyPattern": {
+          "code_postal": 1,
+          "date_mutation": -1
+        },
+        "indexName": "code_postal_1_date_mutation_-1",
+        "isMultiKey": false,
+        "multiKeyPaths": {
+          "code_postal": [],
+          "date_mutation": []
+        },
+        "isUnique": false,
+        "isSparse": false,
+        "isPartial": false,
+        "indexVersion": 2,
+        "direction": "forward",
+        "indexBounds": {
+          "code_postal": [
+            "[\"34000\", \"34000\"]"
+          ],
+          "date_mutation": [
+            "[MaxKey, MinKey]"
+          ]
+        },
+        "keysExamined": 1933,
+        "seeks": 1,
+        "dupsTested": 0,
+        "dupsDropped": 0
+      }
+    }
+  },
+  "command": {
+    "find": "mutations",
+    "filter": {
+      "code_postal": "34000"
+    },
+    "$db": "immo"
+  },
+  "serverInfo": {
+    "host": "b48419444637",
+    "port": 27017,
+    "version": "7.0.40",
+    "gitVersion": "37741b538c02da076d1e34d66113ac0230d4523a"
+  },
+  "serverParameters": {
+    "internalQueryFacetBufferSizeBytes": 104857600,
+    "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+    "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+    "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+    "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+    "internalQueryProhibitBlockingMergeOnMongoS": 0,
+    "internalQueryMaxAddToSetBytes": 104857600,
+    "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+    "internalQueryFrameworkControl": "forceClassicEngine"
+  },
+  "ok": 1
+}

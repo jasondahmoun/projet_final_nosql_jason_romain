@@ -5,6 +5,7 @@
 # que personne ne clone. Le README doit donner la commande de téléchargement,
 # pas les données elles-mêmes.
 *.csv
+*.csv.gz
 *.json
 *.json.gz
 *.zip
@@ -23,6 +24,14 @@ dump/
 !rapport/captures/
 !rapport/captures/**
 
+# ... même piège pour les mocks du front : ce sont de vraies sorties mongosh
+# en .json, pas des données brutes à exclure.
+!web/mock/
+!web/mock/**
+
 __pycache__/
+*.pyc
 .venv/
 node_modules/
+*.log
+.DS_Store

@@ -1,0 +1,79 @@
+{
+  "explainVersion": "1",
+  "queryPlanner": {
+    "namespace": "immo.mutations",
+    "indexFilterSet": false,
+    "parsedQuery": {
+      "code_postal": {
+        "$eq": "34000"
+      }
+    },
+    "queryHash": "A3AA375A",
+    "planCacheKey": "A3AA375A",
+    "optimizationTimeMillis": 0,
+    "maxIndexedOrSolutionsReached": false,
+    "maxIndexedAndSolutionsReached": false,
+    "maxScansToExplodeReached": false,
+    "winningPlan": {
+      "stage": "COLLSCAN",
+      "filter": {
+        "code_postal": {
+          "$eq": "34000"
+        }
+      },
+      "direction": "forward"
+    },
+    "rejectedPlans": []
+  },
+  "executionStats": {
+    "executionSuccess": true,
+    "nReturned": 1933,
+    "executionTimeMillis": 16,
+    "totalKeysExamined": 0,
+    "totalDocsExamined": 29565,
+    "executionStages": {
+      "stage": "COLLSCAN",
+      "filter": {
+        "code_postal": {
+          "$eq": "34000"
+        }
+      },
+      "nReturned": 1933,
+      "executionTimeMillisEstimate": 2,
+      "works": 29566,
+      "advanced": 1933,
+      "needTime": 27632,
+      "needYield": 0,
+      "saveState": 29,
+      "restoreState": 29,
+      "isEOF": 1,
+      "direction": "forward",
+      "docsExamined": 29565
+    }
+  },
+  "command": {
+    "find": "mutations",
+    "filter": {
+      "code_postal": "34000"
+    },
+    "$db": "immo"
+  },
+  "serverInfo": {
+    "host": "b48419444637",
+    "port": 27017,
+    "version": "7.0.40",
+    "gitVersion": "37741b538c02da076d1e34d66113ac0230d4523a"
+  },
+  "serverParameters": {
+    "internalQueryFacetBufferSizeBytes": 104857600,
+    "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+    "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+    "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+    "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+    "internalQueryProhibitBlockingMergeOnMongoS": 0,
+    "internalQueryMaxAddToSetBytes": 104857600,
+    "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+    "internalQueryFrameworkControl": "forceClassicEngine"
+  },
+  "ok": 1
+}

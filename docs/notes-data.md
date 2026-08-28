@@ -120,3 +120,33 @@ db.getSiblingDB("admin").system.users.countDocuments({})
 L'utilisateur `app` ne peut **ni créer d'utilisateur, ni lire une autre base** (testé sur `admin`) - seul le
 `readWrite` sur `immo` fonctionne (`db.mutations.countDocuments({})` → 29565). Ce n'est pas juste déclaré
 dans `db/01-init-app-user.js`, c'est vérifié par un refus réel du serveur.
+
+## Index et explain() - capture avant/après (exigence n°5)
+
+Requête : `db.mutations.find({ code_postal: "34000" })`. Captures complètes dans
+`rapport/captures/explain_avant.json` et `explain_apres.json`.
+
+| | Avant (sans index) | Après (`{code_postal:1, date_mutation:-1}`) |
+|---|---|---|
+| stage racine | `COLLSCAN` | `FETCH` |
+| stage suivant | — | `IXSCAN` (`inputStage` du `FETCH`) |
+| totalKeysExamined | 0 | 1933 |
+| totalDocsExamined | 29565 | 1933 |
+| nReturned | 1933 | 1933 |
+| ratio examinés/rendus | 15,3 | **1,0** |
+
+Attention à la lecture du plan indexé : le stage **racine** est `FETCH`, pas `IXSCAN` - l'`IXSCAN` est son
+`inputStage`. Rapporter uniquement le stage racine donnerait « COLLSCAN → FETCH », ce qui ne prouve rien -
+c'est la chaîne complète qui montre que l'index est réellement utilisé.
+
+## Quel index sert quoi, et son coût en écriture
+
+| Index | Requête servie | Coût en écriture |
+|---|---|---|
+| `{ code_postal:1, date_mutation:-1 }` | `find({code_postal:...})` - capture explain() ci-dessus | +1 entrée B-tree par insertion/maj de `mutations` |
+| `{ geo: "2dsphere" }` | `$geoNear` (Q3) - obligatoire, sans lui la requête échoue | Le plus coûteux des trois : structure géospatiale à recalculer à chaque écriture touchant `geo` |
+| `{ nom_commune: 1 }` | `GET /mutations?commune=...` (le CRUD) | +1 entrée B-tree par insertion/maj |
+
+Les 3 index sont créés par `db/03-indexes.js` **après** le `$out` du transform (étape 4, une fois les 29565
+documents déjà en place) : la charge d'écriture des index ne pèse donc pas sur l'import initial en masse,
+seulement sur les écritures individuelles ultérieures (CRUD `POST`/`PUT`/`DELETE`).
