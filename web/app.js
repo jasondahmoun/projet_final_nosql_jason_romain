@@ -1,10 +1,10 @@
-const USE_MOCK = true;
+const USE_MOCK = false;
 const API = "http://localhost:8000";
 
 const ROUTES = {
   q1: "/agg/prix-m2-commune?limit=10&min_ventes=30",
   q2: "/agg/evolution-mensuelle",
-  q3: "/agg/dans-rayon?lon=3.8767&lat=43.6108&rayon_m=5000",
+  q3: "/agg/dans-rayon?lon=3.8767&lat=43.6108&rayon_m=5000&limit=4000",
 };
 
 const charge = (q) =>
@@ -44,16 +44,45 @@ charge("q2")
   })
   .catch((e) => erreur("q2err", e));
 
+const PALIERS = [
+  { max: 2500, couleur: "#2c7bb6", label: "< 2 500" },
+  { max: 3000, couleur: "#abd9e9", label: "2 500 – 3 000" },
+  { max: 3500, couleur: "#ffffbf", label: "3 000 – 3 500" },
+  { max: 4500, couleur: "#fdae61", label: "3 500 – 4 500" },
+  { max: Infinity, couleur: "#d7191c", label: "> 4 500" },
+];
+
+const couleurPrix = (p) => PALIERS.find((x) => p < x.max).couleur;
+
 charge("q3")
   .then((d) => {
-    const carte = L.map("carte").setView([43.6108, 3.8767], 12);
+    const carte = L.map("carte").setView([43.6108, 3.8767], 13);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap",
+      opacity: 0.55,
     }).addTo(carte);
+
     d.forEach((m) =>
-      L.circleMarker([m.lat, m.lon], { radius: 4, color: "#0b6560", fillOpacity: 0.6 })
+      L.circleMarker([m.lat, m.lon], {
+        radius: 3,
+        stroke: false,
+        fillColor: couleurPrix(m.prix_m2),
+        fillOpacity: 0.75,
+      })
         .addTo(carte)
-        .bindPopup(`${m.nom_commune}<br>${m.prix_m2.toLocaleString("fr-FR")} €/m²<br>${m.distance_m} m`)
+        .bindPopup(`${m.nom_commune}<br>${m.prix_m2.toLocaleString("fr-FR")} €/m²<br>à ${m.distance_m} m du centre`)
     );
+
+    const legende = L.control({ position: "bottomright" });
+    legende.onAdd = () => {
+      const div = L.DomUtil.create("div", "legende");
+      div.innerHTML =
+        "<strong>€/m²</strong>" +
+        PALIERS.map((p) => `<span><i style="background:${p.couleur}"></i>${p.label}</span>`).join("");
+      return div;
+    };
+    legende.addTo(carte);
+
+    document.getElementById("q3count").textContent = `${d.length.toLocaleString("fr-FR")} appartements vendus`;
   })
   .catch((e) => erreur("q3err", e));

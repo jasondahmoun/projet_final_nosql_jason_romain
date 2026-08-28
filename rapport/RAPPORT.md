@@ -146,12 +146,26 @@ Transformations appliquées, dans l'ordre : conversion des types (`$convert` ave
 
 ### Indexation
 
-*(Chiffres à compléter avec les captures `explain()` avant/après — `rapport/captures/`)*
+Requête mesurée : `db.mutations.find({ code_postal: "34000" })`. Captures complètes dans `rapport/captures/explain_avant.json` et `explain_apres.json`.
 
-| Index | Requête servie | `stage` avant → après | `totalDocsExamined` avant → après |
-|---|---|---|---|
-| `{ code_postal: 1, date_mutation: -1 }` | Q1 et Q2, filtrées par secteur, triées par date | COLLSCAN → FETCH ← IXSCAN | 29 565 → *(à mesurer)* |
-| `{ geo: "2dsphere" }` | Q3, `$geoNear` dans un rayon | requête impossible → IXSCAN géospatial | — |
+| | Avant (aucun index) | Après `{code_postal:1, date_mutation:-1}` |
+|---|---|---|
+| chaîne de stages | `COLLSCAN` | `FETCH ← IXSCAN` |
+| `totalKeysExamined` | 0 | 1 933 |
+| `totalDocsExamined` | **29 565** | **1 933** |
+| `nReturned` | 1 933 | 1 933 |
+| ratio examinés / rendus | 15,3 | **1,0** |
+| `executionTimeMillis` | 16 | 4 |
+
+L'index ne divise pas seulement le temps par quatre : il fait passer le ratio examinés / rendus de 15,3 à 1,0. MongoDB ne lit plus que les documents qu'il retourne. C'est ce chiffre qui compte, pas la milliseconde — le temps dépend du cache et de la machine, le ratio non.
+
+| Index | Requête servie | Coût en écriture |
+|---|---|---|
+| `{ code_postal: 1, date_mutation: -1 }` | filtrage par secteur, tri par date (Q1, Q2) | une entrée B-tree par écriture sur `mutations` |
+| `{ geo: "2dsphere" }` | `$geoNear` de Q3 — **obligatoire**, sans lui la requête échoue au lieu d'être lente | le plus cher des trois : structure géospatiale recalculée à chaque écriture touchant `geo` |
+| `{ nom_commune: 1 }` | `GET /mutations?commune=…` du CRUD | une entrée B-tree par écriture |
+
+Les trois index sont créés **après** le `$out` du transform, une fois les 29 565 documents en place : leur coût d'écriture ne pèse pas sur l'import en masse, seulement sur les écritures unitaires du CRUD.
 
 Trois index, pas dix. Chacun sert une requête nommée ; un index créé « au cas où » coûte en écriture et ne se justifie devant personne.
 
@@ -235,9 +249,21 @@ db.mutations.aggregate([
 
 Affiché en courbe sur le front, une série par type de local.
 
-**Interprétation.** *(à compléter à la lecture du graphe : sens de l'écart appartement / maison, saisonnalité, mois atypiques)*
+| Mois | Appartement | Maison | Écart | Ventes |
+|---|---|---|---|---|
+| 2024-01 | 3 341 | 2 913 | +14,7 % | 1 295 |
+| 2024-03 | 3 582 | 2 879 | +24,4 % | 1 310 |
+| 2024-05 | 3 419 | 2 784 | +22,8 % | 1 451 |
+| 2024-09 | 3 481 | 3 005 | +15,8 % | 1 739 |
+| 2024-12 | 3 515 | 2 976 | +18,1 % | 2 041 |
 
-*Réserves.* La date retenue est celle de la mutation, c'est-à-dire de la signature de l'acte — soit trois à quatre mois après l'accord sur le prix. La courbe est donc décalée d'un trimestre par rapport au marché réel. Les mois de faible volume ont une moyenne instable.
+**Interprétation.** L'appartement se vend systématiquement plus cher au m² que la maison, sur les douze mois sans exception : de +10,6 % (avril) à +24,4 % (mars), autour de +16 % en médiane. L'écart n'est pas un effet de qualité mais de foncier — le prix de la maison intègre un terrain, dilué sur une surface bâtie plus grande.
+
+**Il n'y a pas de tendance annuelle exploitable.** L'amplitude sur l'année est de 8,4 % pour l'appartement et 9,4 % pour la maison, du même ordre que la dispersion mensuelle. Le +5,2 % de janvier à décembre sur l'appartement tient à deux points extrêmes isolés (mars à 3 582, octobre à 3 315) et disparaît si on lisse. **Conclusion honnête : le marché héraultais du logement est stable en 2024, il ne monte pas.**
+
+Le volume, lui, bouge nettement : 1 295 mutations en janvier contre 2 041 en décembre, soit +58 %.
+
+*Réserves.* La date retenue est celle de la signature de l'acte, trois à quatre mois après l'accord sur le prix : la courbe est décalée d'un trimestre par rapport au marché réel, et la montée du volume en fin d'année est très probablement l'écho des compromis du printemps, pas une reprise de décembre. Une moyenne — et non une médiane — a été retenue ici pour rester lisible en série temporelle ; elle est plus sensible aux valeurs extrêmes que la médiane de Q1, ce que les bornes `100 < prix_m2 < 20 000` limitent sans l'annuler.
 
 ### Question 3 — Dans un rayon de 5 km
 
@@ -258,15 +284,33 @@ Affiché en courbe sur le front, une série par type de local.
 
 Rendu sur une carte Leaflet, un cercle par mutation, le prix au m² en infobulle.
 
-**Interprétation.** *(à compléter à la lecture de la carte : gradient centre / périphérie, quartiers qui ressortent)*
+**3 925 appartements** vendus dans le rayon. Prix moyen au m² par tranche de distance :
 
-*Réserves.* 235 mutations du jeu n'ont aucune coordonnée et sont invisibles sur la carte, sans que leur absence soit signalée à l'utilisateur. La distance est calculée depuis un point arbitraire (la place de la Comédie) : un rayon de 5 km à vol d'oiseau ne recouvre pas un bassin de vie.
+| Distance au centre | Prix moyen €/m² | Ventes |
+|---|---|---|
+| 0 – 1 km | **3 747** | 768 |
+| 1 – 2 km | 3 305 | 1 184 |
+| 2 – 3 km | 3 308 | 1 007 |
+| 3 – 4 km | **3 149** | 653 |
+| 4 – 5 km | **3 731** | 313 |
+
+**Interprétation.** Le résultat contredit l'intuition : **le prix n'est pas une fonction décroissante de la distance au centre.** Il chute de 12 % dès le premier kilomètre, reste sur un plateau entre 1 et 3 km, atteint son minimum entre 3 et 4 km — puis **remonte de 18 % entre 4 et 5 km**, jusqu'à retrouver le niveau de l'hypercentre.
+
+Montpellier ne suit donc pas un modèle monocentrique mais un modèle **centre + pôles** : la couronne 4-5 km capte les programmes récents de l'est de la ville, dont les prix au neuf sont décorrélés de la distance à la Comédie. Un négociateur qui estimerait un bien au seul critère « distance au centre » se tromperait systématiquement sur cette couronne.
+
+*Réserves.* La distance est mesurée à vol d'oiseau depuis un point arbitraire (la place de la Comédie) : elle ne dit rien de l'accessibilité réelle, et un rayon de 5 km ne recouvre pas un bassin de vie. La tranche 4-5 km ne repose que sur 313 ventes, contre 1 184 pour la tranche 1-2 km : la remontée est nette mais moins solidement établie que le plateau. Enfin, 235 mutations du jeu complet n'ont aucune coordonnée et sont invisibles sur la carte, sans que leur absence soit signalée à l'utilisateur.
+
+**Ce que la carte ajoute aux chiffres.** Les mutations y sont colorées par tranche de prix (`captures/front.png`), et le motif obtenu corrige notre propre lecture : **le gradient n'est pas radial, il est directionnel.** Les ventes sous 2 500 €/m² forment un bloc compact à l'ouest et au sud-ouest — Les Cévennes, Croix d'Argent, Mosson — tandis que les ventes au-dessus de 4 500 €/m² se concentrent dans l'hypercentre et sur un axe est vers Port Marianne. À distance égale du centre, l'écart entre l'ouest et l'est dépasse celui entre le centre et la périphérie.
+
+Le découpage par tranches de distance du tableau ci-dessus moyennait donc deux populations opposées dans chaque anneau, et le creux à 3-4 km n'est pas un creux : c'est le poids de l'ouest dans cet anneau. **Une agrégation par distance seule était le mauvais découpage pour cette question** — un `$geoWithin` sur des polygones de quartier répondrait mieux, et c'est ce que nous ferions avec une journée de plus.
+
+> Défaut corrigé en cours de route : la route renvoyait 500 résultats par défaut. Comme `$geoNear` trie par distance croissante, la carte s'arrêtait en réalité à 1,3 km et **n'affichait jamais la remontée des 4-5 km** — le résultat le plus intéressant de la question était masqué par une valeur par défaut.
 
 ### Captures
 
 - `captures/explain_avant.json` — plan d'exécution sans index
 - `captures/explain_apres.json` — plan après création de l'index composé
-- `captures/front.png` — le front affichant les trois vues
+- `captures/front.png` — le front affichant les trois vues, carte colorée par tranche de prix
 
 ---
 
@@ -274,7 +318,7 @@ Rendu sur une carte Leaflet, un cercle par mutation, le prix au m² en infobulle
 
 **Ce qui a été livré.** Les six exigences du cahier des charges sont couvertes : 29 565 documents issus d'une source publique citée, deux collections liées par un `$lookup` argumenté, une API REST avec CRUD complet et trois routes d'agrégation, trois questions métier formulées avant leur pipeline, des index justifiés par `explain()`, et une authentification MongoDB avec un rôle applicatif restreint et les secrets hors du dépôt.
 
-**Ce que nous n'avons pas eu le temps de faire.** Le validateur `$jsonSchema` sur `mutations`, la pagination du front, le `$graphLookup`, et la mesure du coût en écriture de nos index.
+**Ce que nous n'avons pas eu le temps de faire.** Le validateur `$jsonSchema` sur `mutations`, la pagination du front, le `$graphLookup`, la mesure du coût en écriture de nos index, et surtout le découpage de Q3 par polygones de quartier (`$geoWithin`) plutôt que par anneaux de distance — c'est la limite méthodologique que la carte nous a révélée trop tard.
 
 **Passage à l'échelle.** À 10 millions de documents — l'équivalent de DVF sur toute la France et dix ans — la collection dépasserait ce qu'une instance unique sert confortablement. La shard key naturelle est `{ code_commune: 1, date_mutation: 1 }` : cardinalité élevée (35 000 communes), pas de hot spot en écriture puisque les mutations arrivent réparties sur tout le territoire, et surtout **elle correspond à nos filtres dominants**. Q1 et Q3 resteraient *targeted* — elles filtrent par commune ou par zone, donc par un préfixe de la clé. Q2, qui agrège sur toute la France par mois, deviendrait un *broadcast* : c'est le prix à payer, et il est acceptable pour une requête de tableau de bord exécutée une fois par jour. Une shard key sur la seule `date_mutation` serait le pire choix possible : monotone croissante, elle enverrait toutes les écritures sur un unique shard.
 

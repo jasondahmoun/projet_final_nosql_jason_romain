@@ -1,4 +1,4 @@
-const COMMUNE = 34172;
+const COMMUNE = { $in: [34172, "34172"] };
 
 const naif = db.raw.aggregate([
   { $match: { code_commune: COMMUNE } },

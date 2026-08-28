@@ -99,7 +99,7 @@ def dans_rayon(
     lon: float = 3.8767,
     lat: float = 43.6108,
     rayon_m: int = Query(5000, ge=100, le=50000),
-    limit: int = Query(500, ge=1, le=2000),
+    limit: int = Query(4000, ge=1, le=10000),
 ):
     query = dict(FILTRE["$match"], type_local="Appartement")
     return list(
