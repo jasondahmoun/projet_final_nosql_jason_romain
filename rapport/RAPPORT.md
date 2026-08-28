@@ -4,6 +4,7 @@
 **IPSSI Montpellier** — Mastère Dév, Data & IA, 4ᵉ année — module MIA4
 **Date** : 28 août 2026
 **Dépôt** : https://github.com/jasondahmoun/projet_final_nosql_jason_romain
+**Date limite de rendu du rapport** : 28 août 2026, 23h59
 
 ---
 
